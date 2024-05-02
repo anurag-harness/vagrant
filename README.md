@@ -7,7 +7,7 @@
 
 Vagrant is a tool for building and distributing development environments.
 
-Development environments managed by Vagrant can run on local virtualized
+Development environments managed by Vagrant can run on local virtualized 
 platforms such as VirtualBox or VMware, in the cloud via AWS or OpenStack,
 or in containers such as with Docker or raw LXC.
 
