@@ -1,12 +1,13 @@
 # Vagrant 
 
+
 - Website: [https://www.vagrantup.com/](https://www.vagrantup.com/)
 - Source: [https://github.com/hashicorp/vagrant](https://github.com/hashicorp/vagrant)
 - HashiCorp Discuss: [https://discuss.hashicorp.com/c/vagrant/24](https://discuss.hashicorp.com/c/vagrant/24)
 
 Vagrant is a tool for building and distributing development environments.
 
-Development environments managed by Vagrant can run on local virtualized
+Development environments managed by Vagrant can run on local virtualized 
 platforms such as VirtualBox or VMware, in the cloud via AWS or OpenStack,
 or in containers such as with Docker or raw LXC.
 
