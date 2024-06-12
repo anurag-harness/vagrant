@@ -1,44 +1,41 @@
-# syntax = docker.mirror.hashicorp.services/docker/dockerfile:experimental
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+FROM ubuntu:bionic as base-builder
 
+ENV GOPATH=$HOME/go
+ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
-FROM docker.mirror.hashicorp.services/golang:alpine AS builder
+RUN apt-get update \
+    && apt-get install -y curl git \
+    && apt-get install -y build-essential \
+    && apt-get install -y cmake \
+    && apt-get install -y wget \
+    && apt-get install -y unzip \
+    && apt-get install -y libssl-dev \
+    && apt-get install -y zlib1g-dev \
+    && apt-get clean
 
-RUN apk add --no-cache git gcc libc-dev openssh
+FROM base-builder as base-builder-extended
+RUN curl -sL https://deb.nodesource.com/setup_14.x
 
-RUN mkdir -p /tmp/wp-prime
-COPY go.sum /tmp/wp-prime
-COPY go.mod /tmp/wp-prime
+FROM base-builder as golang
+RUN curl -O https://storage.googleapis.com/golang/go1.15.2.linux-amd64.tar.gz && touch go
 
-WORKDIR /tmp/wp-prime
+FROM base-builder as source-code
+RUN git clone https://github.com/prometheus/prometheus.git prometheus/
 
-RUN mkdir -p -m 0600 ~/.ssh \
-    && ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-RUN git config --global url.ssh://git@github.com/.insteadOf https://github.com/
-RUN --mount=type=ssh --mount=type=secret,id=ssh.config --mount=type=secret,id=ssh.key \
-    GIT_SSH_COMMAND="ssh -o \"ControlMaster auto\" -F \"/run/secrets/ssh.config\"" \
-    go mod download
+FROM base-builder-extended as builder
+COPY --from=golang go /usr/local
+COPY --from=source-code prometheus/ prometheus/
+RUN cd prometheus/ && echo "Change" > change.txt
 
-COPY . /tmp/wp-src
+# Additional time-consuming commands
+RUN cd /tmp \
+    && wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz \
+    && tar -xzf Python-3.8.0.tgz \
+    && cd Python-3.8.0 \
+    && ./configure \
+    && make \
+    && make install
 
-WORKDIR /tmp/wp-src
+FROM ubuntu:bionic as final
 
-RUN apk add --no-cache make
-RUN go get github.com/kevinburke/go-bindata/...
-RUN --mount=type=cache,target=/root/.cache/go-build make bin
-
-FROM docker.mirror.hashicorp.services/alpine
-
-COPY --from=builder /tmp/wp-src/vagrant /usr/bin/vagrant
-
-VOLUME ["/data"]
-
-RUN addgroup vagrant && \
-    adduser -S -G vagrant vagrant && \
-    mkdir /data/ && \
-    chown -R vagrant:vagrant /data
-
-USER vagrant
-
-ENTRYPOINT ["/usr/bin/vagrant"]
+COPY --from=builder prometheus/change.txt change.txt
